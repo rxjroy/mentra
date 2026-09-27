@@ -297,8 +297,10 @@ export async function sendOtpEmail({
   code,
   purpose = "verification"
 }: SendOtpEmailParams): Promise<{ success: boolean; error?: string }> {
-  const smtpEmail = process.env.SMTP_EMAIL;
-  const smtpPassword = process.env.SMTP_PASSWORD;
+  const smtpEmail = process.env.SMTP_EMAIL || process.env.EMAIL_USER;
+  const smtpPassword = process.env.SMTP_PASSWORD || process.env.EMAIL_PASS;
+  const emailHost = process.env.EMAIL_HOST;
+  const emailPort = process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : 587;
   const from = process.env.EMAIL_FROM || `Mentra Security <${smtpEmail || "mentrainterview@gmail.com"}>`;
   const replyTo = smtpEmail || "mentrainterview@gmail.com";
 
@@ -312,16 +314,28 @@ export async function sendOtpEmail({
     subject = `${code} is your Mentra password reset code`;
   }
 
-  // 1. Primary: Direct Gmail SMTP Transporter (Sends to ANY email worldwide, 100% free)
+  // 1. Primary: Direct SMTP / Gmail Transporter
   if (smtpEmail && smtpPassword) {
     try {
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: smtpEmail,
-          pass: smtpPassword.replace(/\s+/g, "")
-        }
-      });
+      const transportConfig = emailHost && emailHost !== "smtp.gmail.com"
+        ? {
+            host: emailHost,
+            port: emailPort,
+            secure: emailPort === 465,
+            auth: {
+              user: smtpEmail,
+              pass: smtpPassword.replace(/\s+/g, "")
+            }
+          }
+        : {
+            service: "gmail",
+            auth: {
+              user: smtpEmail,
+              pass: smtpPassword.replace(/\s+/g, "")
+            }
+          };
+
+      const transporter = nodemailer.createTransport(transportConfig);
 
       const info = await transporter.sendMail({
         from,
