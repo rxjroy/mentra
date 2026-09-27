@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String             @id @default(cuid())
+  name         String
+  email        String             @unique
+  passwordHash String?
+  avatarUrl    String?
+  provider     String?            @default("credentials")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  sessions     InterviewSession[]
+
+  @@index([email])
+}
+
+model InterviewSession {
+  id                   String    @id
+  userId               String?
+  user                 User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobDescription       String    @db.Text
+  role                 String?
+  company              String?
+  culture              String?
+  mode                 String    @default("full")
+  status               String    @default("in_progress")
+  readinessScore       Int?
+  technicalScore       Float?
+  behavioralScore      Float?
+  communicationScore   Float?
+  consistencyScore     Float?
+  overallSummary       String?   @db.Text
+  weakTopics           Json?     @default("[]")
+  strengths            Json?     @default("[]")
+  recommendedActions   Json?     @default("[]")
+  difficultyAdjustment Json?
+  questions            Json      @default("[]")
+  createdAt            DateTime  @default(now())
+  completedAt          DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
